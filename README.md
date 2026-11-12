@@ -32,6 +32,33 @@ desktop app:
 - **Ollama install** (`planOllamaInstall`, `pullIntoOllama`, Modelfile helpers) —
   a single `ollama pull hf.co/owner/repo:quant`, or a GPU-split Modelfile.
 
+## Gateway observer
+
+The `gateway` module reads the local AstrLink API gateway through its own
+read-only CLI (`~/.astrlink/bin/astrlink`):
+
+- **`fetchGatewayStatus`** — providers and subscription health, routing posture,
+  capture/audit settings, privacy policies and the alerts that follow from them.
+- **`fetchGatewayRequests`** — a bounded page of recent request records plus a
+  count / failure / token / latency summary, filterable by status and service.
+- **`gatewayAlerts`** — the pure alert rules: disconnected subscriptions, expired
+  or expiring tokens, no enabled provider, body capture on, privacy off or
+  warn-only, and subscription identity enforcement.
+- **`GatewayCliError` / `availability`** — `not-installed`, `not-running`,
+  `blocked` or `error`, so callers can show a useful state instead of failing.
+
+Metadata only: the CLI also returns prompt previews, event trajectories, cursors
+and account hints — none of them are parsed or copied. Nothing here changes a
+gateway setting, opens its database, or reads a request or response body.
+
+```ts
+import { fetchGatewayStatus } from '@toolbox/widgets'
+
+const status = await fetchGatewayStatus()
+if (status.availability !== 'ready') console.log(status.error)
+for (const alert of status.alerts) console.log(alert.level, alert.message)
+```
+
 ## Portable bundle format
 
 Any app can export its widget setup and another can import it. Bundles are plain,

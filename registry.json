@@ -1,7 +1,7 @@
 {
   "format": "toolbox-marketplace",
   "formatVersion": 1,
-  "updated": "2026-11-10T15:00:00.000Z",
+  "updated": "2026-11-12T14:30:00.000Z",
   "modules": [
     {
       "id": "crypto-watch",
@@ -60,6 +60,18 @@
       "tags": ["llm", "huggingface", "ollama", "gguf", "gpu"],
       "homepage": "https://github.com/28121978444/toolbox-widgets",
       "builtIn": true
+    },
+    {
+      "id": "astrlink-gateway",
+      "type": "feature",
+      "name": "AstrLink Gateway",
+      "description": "Read-only observer for the local AstrLink API gateway: provider and subscription health, routing posture, capture/privacy settings and recent request latency and token spend. Metadata only — no prompt bodies, no setting changes.",
+      "version": "0.1.0",
+      "author": "Toolbox",
+      "icon": "⇄",
+      "categories": ["ai", "monitoring", "developer"],
+      "tags": ["astrlink", "gateway", "llm", "routing", "observability"],
+      "homepage": "https://github.com/28121978444/toolbox-widgets"
     },
     {
       "id": "liquidvision",

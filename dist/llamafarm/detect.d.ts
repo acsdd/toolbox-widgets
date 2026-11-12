@@ -3,6 +3,7 @@ import type { MachineProfile } from './types.js';
 export type ExecFileLike = (file: string, args: string[], options: {
     timeout: number;
     windowsHide: boolean;
+    maxBuffer?: number;
 }, cb: (error: Error | null, stdout: string) => void) => void;
 export interface DetectOptions {
     fetchImpl?: FetchLike;

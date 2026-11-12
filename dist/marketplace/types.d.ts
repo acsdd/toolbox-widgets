@@ -6,7 +6,7 @@
 import type { WidgetBundleEntry } from '../bundle.js';
 export declare const MARKETPLACE_FORMAT = "toolbox-marketplace";
 export declare const MARKETPLACE_FORMAT_VERSION = 1;
-export declare const DEFAULT_REGISTRY_URL = "https://raw.githubusercontent.com/28121978444/toolbox-widgets/main/registry.json";
+export declare const DEFAULT_REGISTRY_URL = "https://raw.githubusercontent.com/acsdd/toolbox-widgets/main/registry.json";
 export type MarketplaceModuleType = 'widget' | 'feature' | 'remote-server';
 export interface MarketplaceModule {
     id: string;

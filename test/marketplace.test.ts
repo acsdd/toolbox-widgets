@@ -116,4 +116,13 @@ describe('shipped registry.json', () => {
     assert.ok(ids.includes('llamafarm'))
     assert.equal(registry.modules.find((m) => m.id === 'llamafarm')?.builtIn, true)
   })
+
+  it('lists the AstrLink gateway observer as an installable feature', async () => {
+    const raw = JSON.parse(await readFile(new URL('../registry.json', import.meta.url), 'utf8'))
+    const module = parseRegistry(raw).modules.find((m) => m.id === 'astrlink-gateway')
+    assert.ok(module, 'the gateway observer is discoverable in the marketplace')
+    assert.equal(module.type, 'feature')
+    assert.equal(module.builtIn, undefined, 'people without AstrLink can uninstall it')
+    assert.equal(module.endpoint, undefined, 'it reads the local CLI, not a remote server')
+  })
 })

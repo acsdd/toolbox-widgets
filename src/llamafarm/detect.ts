@@ -12,7 +12,7 @@ import type { GpuInfo, InstalledModel, MachineProfile, OllamaInfo } from './type
 export type ExecFileLike = (
   file: string,
   args: string[],
-  options: { timeout: number; windowsHide: boolean },
+  options: { timeout: number; windowsHide: boolean; maxBuffer?: number },
   cb: (error: Error | null, stdout: string) => void
 ) => void
 

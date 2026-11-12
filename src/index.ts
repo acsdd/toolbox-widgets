@@ -143,3 +143,38 @@ export type {
   MarketplaceQuery,
   MarketplaceRegistry
 } from './marketplace/index.js'
+
+export {
+  defaultGatewayCliPath,
+  fetchGatewayRequests,
+  fetchGatewayStatus,
+  gatewayAlerts,
+  GatewayCliError,
+  parseGatewayAudit,
+  parseGatewayPrivacy,
+  parseGatewayRequests,
+  parseGatewayRouting,
+  parseGatewayServices,
+  summarizeGatewayRequests
+} from './gateway/index.js'
+export type {
+  GatewayAlert,
+  GatewayAlertInput,
+  GatewayAlertLevel,
+  GatewayAudit,
+  GatewayAvailability,
+  GatewayBuiltinTool,
+  GatewayCapability,
+  GatewayOptions,
+  GatewayPrivacyPolicy,
+  GatewayRedirect,
+  GatewayRequest,
+  GatewayRequestOptions,
+  GatewayRequestsResult,
+  GatewayRequestSummary,
+  GatewayRouting,
+  GatewayService,
+  GatewayStatus,
+  GatewaySubscription,
+  GatewayUsage
+} from './gateway/index.js'
