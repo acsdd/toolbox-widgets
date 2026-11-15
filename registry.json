@@ -1,7 +1,7 @@
 {
   "format": "toolbox-marketplace",
   "formatVersion": 1,
-  "updated": "2026-11-12T14:30:00.000Z",
+  "updated": "2026-11-15T08:55:00.000Z",
   "modules": [
     {
       "id": "crypto-watch",
@@ -13,7 +13,7 @@
       "icon": "◈",
       "categories": ["finance", "monitoring"],
       "tags": ["crypto", "prices", "coingecko", "charts"],
-      "homepage": "https://github.com/28121978444/toolbox-widgets",
+      "homepage": "https://github.com/acsdd/toolbox-widgets",
       "bundle": {
         "widget": "crypto-watch",
         "settings": { "watchlist": ["bitcoin", "ethereum", "solana"] }
@@ -29,7 +29,7 @@
       "icon": "✉",
       "categories": ["communication"],
       "tags": ["gmail", "imap", "mail", "notifications"],
-      "homepage": "https://github.com/28121978444/toolbox-widgets",
+      "homepage": "https://github.com/acsdd/toolbox-widgets",
       "credentialsRequired": true
     },
     {
@@ -42,7 +42,7 @@
       "icon": "▤",
       "categories": ["monitoring", "system"],
       "tags": ["cpu", "ram", "disk", "processes"],
-      "homepage": "https://github.com/28121978444/toolbox-widgets",
+      "homepage": "https://github.com/acsdd/toolbox-widgets",
       "bundle": {
         "widget": "resource-monitor",
         "settings": { "showProcesses": true }
@@ -58,7 +58,7 @@
       "icon": "⌁",
       "categories": ["ai", "models"],
       "tags": ["llm", "huggingface", "ollama", "gguf", "gpu"],
-      "homepage": "https://github.com/28121978444/toolbox-widgets",
+      "homepage": "https://github.com/acsdd/toolbox-widgets",
       "builtIn": true
     },
     {
@@ -71,7 +71,7 @@
       "icon": "⇄",
       "categories": ["ai", "monitoring", "developer"],
       "tags": ["astrlink", "gateway", "llm", "routing", "observability"],
-      "homepage": "https://github.com/28121978444/toolbox-widgets"
+      "homepage": "https://github.com/acsdd/toolbox-widgets"
     },
     {
       "id": "liquidvision",

@@ -1,8 +1,25 @@
 {
   "name": "@toolbox/widgets",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Shared widget core and portable bundle format for the Toolbox family of apps (desktop, NAS, MCP).",
+  "author": "Alpha Team",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/acsdd/toolbox-widgets.git"
+  },
+  "homepage": "https://github.com/acsdd/toolbox-widgets#readme",
+  "bugs": {
+    "url": "https://github.com/acsdd/toolbox-widgets/issues"
+  },
+  "keywords": [
+    "toolbox",
+    "widgets",
+    "mcp",
+    "marketplace",
+    "ollama",
+    "astrlink"
+  ],
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",

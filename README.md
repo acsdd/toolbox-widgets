@@ -95,9 +95,27 @@ const bundle = parseBundleJson(json)        // import (validates everything)
 Requires Node.js 22+.
 
 ```bash
-npm install    # also builds dist/ via the prepare script
-npm test       # build + node:test suite
+npm install
+npm run build     # rebuild dist/ — it is committed on purpose, see below
+npm test          # build + node:test suite
 npm run typecheck
+```
+
+`dist/` is committed because consumers install this package straight from git,
+where dependency lifecycle scripts may not run. CI fails if the committed
+`dist/` drifts from `src/`, so rebuild and commit it with every change.
+
+## Release
+
+This repo is published before `toolbox-mcp`: the MCP server consumes it as a
+`file:` dependency and reads the Marketplace registry from this repo's default
+branch, so a new registry entry only reaches the live Marketplace once
+`main` is pushed here.
+
+```bash
+npm run build          # refresh the committed dist/
+git tag v0.2.0
+git push origin main --tags
 ```
 
 ## License
