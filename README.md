@@ -1,5 +1,7 @@
 # @toolbox/widgets
 
+**Status:** `external_UAT` — released for acceptance testing outside the team. ![status](https://img.shields.io/badge/status-external_UAT-9cf37e?style=flat-square)
+
 Shared widget core and portable bundle format for the Toolbox family of apps:
 
 | App | Repo | Role |
