@@ -6,19 +6,52 @@
 import type { CatalogModel, FitScenario, FitVerdict, MachineProfile, ScoredModel } from './types.js'
 import { gradeSetup } from './grade.js'
 
+/** The runtime a verdict is being computed for; offload wording follows it. */
+export interface ScoreRuntime {
+  id: string
+  api: 'ollama' | 'openai' | 'kobold'
+}
+
 export interface ScoreOptions {
   models: CatalogModel[]
   machine: MachineProfile
   scenario: FitScenario
   /** Fraction of available RAM a model may claim to count as 'now'. Default 0.93. */
   nowThreshold?: number
+  /** Active runtime, so the offload hint names the right control. */
+  runtime?: ScoreRuntime
 }
 
 const DEFAULT_NOW_THRESHOLD = 0.93
 const GiB = 2 ** 30
 const VERDICT_RANK: Record<FitVerdict, number> = { green: 0, yellow: 1, red: 2 }
-/** Rough layer count used to translate spare VRAM into a --n-gpu-layers hint. */
+/** Rough layer count used to translate spare VRAM into an offload hint. */
 const ASSUMED_LAYERS = 32
+
+/**
+ * The GPU-offload hint for a red model, worded for the runtime that would run
+ * it. The layer estimate is the same; only the control the user must touch
+ * changes (llama.cpp flag, Ollama num_gpu, LM Studio slider, …).
+ */
+export function offloadHint(layers: number, runtime?: ScoreRuntime): string {
+  const id = runtime?.id ?? 'llamacpp'
+  switch (id) {
+    case 'ollama':
+      return `Ollama: set num_gpu ${layers} (Modelfile PARAMETER num_gpu) to keep ${layers} layers on the GPU`
+    case 'lmstudio':
+      return `LM Studio: raise GPU offload to ${layers} layers in the model's settings`
+    case 'jan':
+      return `Jan: increase GPU layers (ngl) to ${layers} in the model settings`
+    case 'gpt4all':
+      return `GPT4All: raise the GPU layers setting to ${layers}`
+    case 'koboldcpp':
+      return `KoboldCpp: set --gpulayers ${layers} to split across GPU + RAM`
+    case 'llamafile':
+      return `llamafile: pass -ngl ${layers} to offload ${layers} layers to the GPU`
+    default:
+      return `try --n-gpu-layers ${layers} (llama.cpp) to split across GPU + RAM`
+  }
+}
 
 export function scoreModels(options: ScoreOptions): ScoredModel[] {
   const threshold = options.nowThreshold ?? DEFAULT_NOW_THRESHOLD
@@ -48,7 +81,7 @@ export function scoreModels(options: ScoreOptions): ScoredModel[] {
       const perLayerBytes = (model.fileBytes ?? model.runtimeRamBytes) / ASSUMED_LAYERS
       const layers = Math.floor((maxVram * 0.9) / perLayerBytes)
       if (layers >= 1) {
-        hints.push(`try --n-gpu-layers ${layers} (llama.cpp) to split across GPU + RAM`)
+        hints.push(offloadHint(layers, options.runtime))
       }
     }
     if (model.formats.includes('gguf') && machine.ollama.installed) {

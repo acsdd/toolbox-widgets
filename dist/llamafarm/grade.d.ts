@@ -19,6 +19,13 @@ export declare const GRADE_REFERENCE: {
 };
 type AxisWeights = Record<GradeAxis, number>;
 export declare const AXIS_LABELS: Record<GradeAxis, string>;
+/**
+ * Bytes a download would overshoot free disk by. Zero means it fits; null
+ * means either side is unknown, so a caller must not block on a guess.
+ */
+export declare function diskShortfall(freeBytes: number | null | undefined, neededBytes: number | null | undefined): number | null;
+/** Human-readable disk shortfall, e.g. 'free about 3.0 GB'. */
+export declare function diskShortfallLabel(shortfall: number): string;
 export declare function gradeLetter(score: number): GradeLetter;
 export declare function gradeLabel(letter: GradeLetter): string;
 /**

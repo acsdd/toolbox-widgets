@@ -264,6 +264,94 @@ export async function fetchCatalog(options: FetchCatalogOptions = {}): Promise<C
   return mapped.filter((model): model is CatalogModel => model !== null)
 }
 
+export interface SearchCatalogOptions {
+  formats?: ModelFormat[]
+  /** How many search hits to resolve in detail. */
+  limit?: number
+  fetchImpl?: FetchLike
+  baseUrl?: string
+  timeoutMs?: number
+}
+
+/**
+ * Search HuggingFace live, beyond the cached top-per-task catalog. Returns
+ * GGUF models (by default) with real file sizes, so a model the catalog never
+ * listed can still be found, graded and installed.
+ */
+export async function searchCatalog(query: string, options: SearchCatalogOptions = {}): Promise<CatalogModel[]> {
+  const trimmed = query.trim()
+  if (!trimmed) return []
+  const fetchImpl = options.fetchImpl ?? (globalThis.fetch as FetchLike)
+  const baseUrl = (options.baseUrl ?? 'https://huggingface.co').replace(/\/+$/, '')
+  const formats = options.formats ?? ['gguf']
+  const limit = options.limit ?? 24
+  const timeoutMs = options.timeoutMs ?? 15000
+  const wanted = new Set(formats)
+
+  async function getJson(path: string): Promise<unknown> {
+    const response = await fetchImpl(`${baseUrl}${path}`, {
+      signal: AbortSignal.timeout(timeoutMs),
+      headers: { Accept: 'application/json' }
+    })
+    if (!response.ok) throw new Error(`HuggingFace returned HTTP ${response.status} for ${path}`)
+    return response.json()
+  }
+
+  const list = (await getJson(
+    `/api/models?search=${encodeURIComponent(trimmed)}&sort=downloads&direction=-1&limit=${limit}`
+  )) as HfListItem[]
+  const items = Array.isArray(list) ? list : []
+
+  const candidates = items.filter((item) => {
+    const tags = item.tags ?? []
+    return (
+      (wanted.has('gguf') && tags.includes('gguf')) ||
+      (wanted.has('safetensors') && (tags.includes('safetensors') || tags.includes('diffusers')))
+    )
+  })
+
+  const mapped = await mapLimit(candidates, DETAIL_CONCURRENCY, async (item) => {
+    try {
+      const detail = (await getJson(`/api/models/${encodeRepoId(item.id)}?blobs=true`)) as HfDetail
+      return mapModel(resolveModelTask(item.pipeline_tag), item, detail, wanted)
+    } catch {
+      return null
+    }
+  })
+  return mapped.filter((model): model is CatalogModel => model !== null)
+}
+
+export interface GgufQuant {
+  /** Parsed quantization label, e.g. 'Q4_K_M'; null when the filename carries none. */
+  quant: string | null
+  filename: string
+  sizeBytes: number
+}
+
+/**
+ * List every GGUF file a repo offers, with its quant label and real size, so
+ * the user can pick a quantization instead of taking the catalog default.
+ */
+export async function listGgufQuants(repoId: string, options: FetchModelOptions = {}): Promise<GgufQuant[]> {
+  const fetchImpl = options.fetchImpl ?? (globalThis.fetch as FetchLike)
+  const baseUrl = (options.baseUrl ?? 'https://huggingface.co').replace(/\/+$/, '')
+  const timeoutMs = options.timeoutMs ?? 15000
+  const response = await fetchImpl(`${baseUrl}/api/models/${encodeRepoId(repoId)}?blobs=true`, {
+    signal: AbortSignal.timeout(timeoutMs),
+    headers: { Accept: 'application/json' }
+  })
+  if (!response.ok) throw new Error(`HuggingFace returned HTTP ${response.status} for ${repoId}`)
+  const detail = (await response.json()) as HfDetail
+  const files = (detail.siblings ?? []).filter((file) => file.rfilename.toLowerCase().endsWith('.gguf'))
+  return files
+    .map((file) => ({
+      quant: parseQuantLabel(file.rfilename),
+      filename: file.rfilename,
+      sizeBytes: siblingBytes(file)
+    }))
+    .sort((a, b) => a.sizeBytes - b.sizeBytes)
+}
+
 /** Map a HuggingFace pipeline tag onto a Model Farm task, defaulting to text. */
 export function resolveModelTask(pipelineTag?: string): ModelTask {
   const match = MODEL_TASKS.find((entry) => entry.task === pipelineTag)

@@ -3,17 +3,23 @@ export { detectMachine, type DetectOptions, type ExecFileLike } from './detect.j
 export {
   fetchCatalog,
   fetchModelById,
+  searchCatalog,
+  listGgufQuants,
   parseParamsBillions,
   parseQuantLabel,
   resolveModelTask,
   choosePrimaryGguf,
   PREFERRED_QUANTS,
   type FetchCatalogOptions,
-  type FetchModelOptions
+  type FetchModelOptions,
+  type SearchCatalogOptions,
+  type GgufQuant
 } from './huggingface.js'
-export { scoreModels, sortForDisplay, type ScoreOptions } from './score.js'
+export { scoreModels, sortForDisplay, offloadHint, type ScoreOptions, type ScoreRuntime } from './score.js'
 export {
   axisFit,
+  diskShortfall,
+  diskShortfallLabel,
   gradeLabel,
   gradeLetter,
   gradeMachine,
@@ -24,6 +30,7 @@ export {
 } from './grade.js'
 export {
   buildModelfile,
+  matchInstalledModel,
   normalizeRepoId,
   ollamaModelName,
   ollamaReference,

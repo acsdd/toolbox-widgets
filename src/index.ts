@@ -6,6 +6,8 @@ export {
   parseBundleJson,
   serializeBundle
 } from './bundle.js'
+
+export { WIDGET_HOST_CSS } from './layout/widget-host.js'
 export type { WidgetBundle, WidgetBundleEntry, WidgetId } from './bundle.js'
 
 export {
@@ -69,15 +71,20 @@ export {
   catalogCachePath,
   choosePrimaryGguf,
   detectMachine,
+  diskShortfall,
+  diskShortfallLabel,
   fetchCatalog,
   fetchModelById,
   gradeLabel,
   gradeLetter,
   gradeMachine,
   gradeSetup,
+  listGgufQuants,
   machineLabel,
+  matchInstalledModel,
   isCatalogFresh,
   normalizeRepoId,
+  offloadHint,
   ollamaModelName,
   ollamaReference,
   parseParamsBillions,
@@ -89,6 +96,7 @@ export {
   resolveModelTask,
   runOllamaCommand,
   scoreModels,
+  searchCatalog,
   sortForDisplay,
   writeCatalogCache,
   DEFAULT_CATALOG_TTL_MS,
@@ -105,6 +113,7 @@ export type {
   FetchModelOptions,
   FitScenario,
   FitVerdict,
+  GgufQuant,
   GpuInfo,
   GradeAxis,
   GradeBottleneck,
@@ -121,7 +130,9 @@ export type {
   OllamaInstallPlan,
   PullResult,
   ScoreOptions,
+  ScoreRuntime,
   ScoredModel,
+  SearchCatalogOptions,
   SetupGrade,
   SpawnLike,
   SpawnedProcess

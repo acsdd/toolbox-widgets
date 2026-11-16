@@ -39,6 +39,31 @@ export declare function choosePrimaryGguf(files: HfSibling[]): HfSibling;
  * A task whose list request fails is skipped; if every task fails, throws.
  */
 export declare function fetchCatalog(options?: FetchCatalogOptions): Promise<CatalogModel[]>;
+export interface SearchCatalogOptions {
+    formats?: ModelFormat[];
+    /** How many search hits to resolve in detail. */
+    limit?: number;
+    fetchImpl?: FetchLike;
+    baseUrl?: string;
+    timeoutMs?: number;
+}
+/**
+ * Search HuggingFace live, beyond the cached top-per-task catalog. Returns
+ * GGUF models (by default) with real file sizes, so a model the catalog never
+ * listed can still be found, graded and installed.
+ */
+export declare function searchCatalog(query: string, options?: SearchCatalogOptions): Promise<CatalogModel[]>;
+export interface GgufQuant {
+    /** Parsed quantization label, e.g. 'Q4_K_M'; null when the filename carries none. */
+    quant: string | null;
+    filename: string;
+    sizeBytes: number;
+}
+/**
+ * List every GGUF file a repo offers, with its quant label and real size, so
+ * the user can pick a quantization instead of taking the catalog default.
+ */
+export declare function listGgufQuants(repoId: string, options?: FetchModelOptions): Promise<GgufQuant[]>;
 /** Map a HuggingFace pipeline tag onto a Model Farm task, defaulting to text. */
 export declare function resolveModelTask(pipelineTag?: string): ModelTask;
 export interface FetchModelOptions {

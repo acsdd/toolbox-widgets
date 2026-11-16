@@ -54,6 +54,21 @@ function gb(bytes) {
     const decimals = value >= 100 ? 0 : value >= 10 ? 1 : 2;
     return `${value.toFixed(decimals)} GB`;
 }
+/**
+ * Bytes a download would overshoot free disk by. Zero means it fits; null
+ * means either side is unknown, so a caller must not block on a guess.
+ */
+export function diskShortfall(freeBytes, neededBytes) {
+    if (freeBytes == null || neededBytes == null)
+        return null;
+    if (!Number.isFinite(freeBytes) || !Number.isFinite(neededBytes))
+        return null;
+    return Math.max(0, neededBytes - freeBytes);
+}
+/** Human-readable disk shortfall, e.g. 'free about 3.0 GB'. */
+export function diskShortfallLabel(shortfall) {
+    return `free about ${gb(shortfall)} on disk before downloading`;
+}
 export function gradeLetter(score) {
     if (score >= 95)
         return 'A+';

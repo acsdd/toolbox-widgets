@@ -203,6 +203,72 @@ export async function fetchCatalog(options = {}) {
     });
     return mapped.filter((model) => model !== null);
 }
+/**
+ * Search HuggingFace live, beyond the cached top-per-task catalog. Returns
+ * GGUF models (by default) with real file sizes, so a model the catalog never
+ * listed can still be found, graded and installed.
+ */
+export async function searchCatalog(query, options = {}) {
+    const trimmed = query.trim();
+    if (!trimmed)
+        return [];
+    const fetchImpl = options.fetchImpl ?? globalThis.fetch;
+    const baseUrl = (options.baseUrl ?? 'https://huggingface.co').replace(/\/+$/, '');
+    const formats = options.formats ?? ['gguf'];
+    const limit = options.limit ?? 24;
+    const timeoutMs = options.timeoutMs ?? 15000;
+    const wanted = new Set(formats);
+    async function getJson(path) {
+        const response = await fetchImpl(`${baseUrl}${path}`, {
+            signal: AbortSignal.timeout(timeoutMs),
+            headers: { Accept: 'application/json' }
+        });
+        if (!response.ok)
+            throw new Error(`HuggingFace returned HTTP ${response.status} for ${path}`);
+        return response.json();
+    }
+    const list = (await getJson(`/api/models?search=${encodeURIComponent(trimmed)}&sort=downloads&direction=-1&limit=${limit}`));
+    const items = Array.isArray(list) ? list : [];
+    const candidates = items.filter((item) => {
+        const tags = item.tags ?? [];
+        return ((wanted.has('gguf') && tags.includes('gguf')) ||
+            (wanted.has('safetensors') && (tags.includes('safetensors') || tags.includes('diffusers'))));
+    });
+    const mapped = await mapLimit(candidates, DETAIL_CONCURRENCY, async (item) => {
+        try {
+            const detail = (await getJson(`/api/models/${encodeRepoId(item.id)}?blobs=true`));
+            return mapModel(resolveModelTask(item.pipeline_tag), item, detail, wanted);
+        }
+        catch {
+            return null;
+        }
+    });
+    return mapped.filter((model) => model !== null);
+}
+/**
+ * List every GGUF file a repo offers, with its quant label and real size, so
+ * the user can pick a quantization instead of taking the catalog default.
+ */
+export async function listGgufQuants(repoId, options = {}) {
+    const fetchImpl = options.fetchImpl ?? globalThis.fetch;
+    const baseUrl = (options.baseUrl ?? 'https://huggingface.co').replace(/\/+$/, '');
+    const timeoutMs = options.timeoutMs ?? 15000;
+    const response = await fetchImpl(`${baseUrl}/api/models/${encodeRepoId(repoId)}?blobs=true`, {
+        signal: AbortSignal.timeout(timeoutMs),
+        headers: { Accept: 'application/json' }
+    });
+    if (!response.ok)
+        throw new Error(`HuggingFace returned HTTP ${response.status} for ${repoId}`);
+    const detail = (await response.json());
+    const files = (detail.siblings ?? []).filter((file) => file.rfilename.toLowerCase().endsWith('.gguf'));
+    return files
+        .map((file) => ({
+        quant: parseQuantLabel(file.rfilename),
+        filename: file.rfilename,
+        sizeBytes: siblingBytes(file)
+    }))
+        .sort((a, b) => a.sizeBytes - b.sizeBytes);
+}
 /** Map a HuggingFace pipeline tag onto a Model Farm task, defaulting to text. */
 export function resolveModelTask(pipelineTag) {
     const match = MODEL_TASKS.find((entry) => entry.task === pipelineTag);

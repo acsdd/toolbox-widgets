@@ -25,6 +25,13 @@ export declare function ollamaModelName(label: string): string;
  * checkpoints need a conversion step Ollama cannot do.
  */
 export declare function planOllamaInstall(model: CatalogModel, quantLabel?: string | null): OllamaInstallPlan;
+/**
+ * Find the name a runtime already serves for a catalog model, or null. Handles
+ * the three shapes a local model takes: an Ollama hf.co reference, the short
+ * local name Ollama derives from the label, and a bare GGUF filename stem in a
+ * folder runtime. Matching is case-insensitive and ignores the quant tag.
+ */
+export declare function matchInstalledModel(model: CatalogModel, names: string[]): string | null;
 /** Build a Modelfile that pins the reference and the GPU offload split. */
 export declare function buildModelfile(reference: string, options?: {
     numGpu?: number;

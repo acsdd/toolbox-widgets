@@ -54,6 +54,30 @@ export function planOllamaInstall(model, quantLabel) {
         ]
     };
 }
+/**
+ * Find the name a runtime already serves for a catalog model, or null. Handles
+ * the three shapes a local model takes: an Ollama hf.co reference, the short
+ * local name Ollama derives from the label, and a bare GGUF filename stem in a
+ * folder runtime. Matching is case-insensitive and ignores the quant tag.
+ */
+export function matchInstalledModel(model, names) {
+    const repo = normalizeRepoId(model.id).toLowerCase();
+    const repoName = repo.split('/')[1] ?? repo;
+    const localName = ollamaModelName(model.label);
+    const labelLower = model.label.toLowerCase();
+    for (const raw of names) {
+        const base = raw.toLowerCase().split(':')[0];
+        if (base.includes(repo))
+            return raw;
+        if (base === localName || base === labelLower)
+            return raw;
+        if (base.startsWith(`${labelLower}-`) || base.startsWith(`${labelLower}.`))
+            return raw;
+        if (base === repoName || base.startsWith(`${repoName}-`))
+            return raw;
+    }
+    return null;
+}
 /** Build a Modelfile that pins the reference and the GPU offload split. */
 export function buildModelfile(reference, options = {}) {
     const lines = [`FROM ${reference}`];
