@@ -25,6 +25,32 @@ import { join } from 'node:path'
 
 const GiB = 2 ** 30
 
+/** A fake `ollama` process that replays the given replies in order. */
+function fakeOllamaSpawn(
+  replies: Array<{ output: string; code: number }>,
+  seen: string[] = []
+): SpawnLike {
+  let index = 0
+  return (_file, args) => {
+    seen.push(args.join(' '))
+    const reply = replies[Math.min(index++, replies.length - 1)]
+    const stdout: Array<(chunk: Buffer | string) => void> = []
+    const stderr: Array<(chunk: Buffer | string) => void> = []
+    const close: Array<(code: number | null) => void> = []
+    setTimeout(() => {
+      stdout.forEach((listener) => listener(reply.output))
+      close.forEach((listener) => listener(reply.code))
+    }, 0)
+    return {
+      stdout: { on: (_event, listener) => stdout.push(listener) },
+      stderr: { on: (_event, listener) => stderr.push(listener) },
+      on: (event, listener) => {
+        if (event === 'close') close.push(listener as (code: number | null) => void)
+      }
+    }
+  }
+}
+
 function model(overrides: Partial<CatalogModel> = {}): CatalogModel {
   return {
     id: 'bartowski/Llama-3.2-3B-Instruct-GGUF',
@@ -50,15 +76,28 @@ describe('ollama references', () => {
     assert.equal(ollamaReference('bartowski/Llama-3.2-3B-Instruct-GGUF', 'Q4_K_M'), 'hf.co/bartowski/Llama-3.2-3B-Instruct-GGUF:Q4_K_M')
   })
 
-  it('omits the tag when the quant label is unusable', () => {
-    assert.equal(ollamaReference('owner/repo', 'not a tag!'), 'hf.co/owner/repo')
-    assert.equal(ollamaReference('owner/repo', null), 'hf.co/owner/repo')
+  it('keeps a quantization Ollama understands', () => {
+    assert.equal(ollamaReference('bartowski/Llama-3.2-3B-Instruct-GGUF', 'Q4_K_M'), 'hf.co/bartowski/Llama-3.2-3B-Instruct-GGUF:Q4_K_M')
+    assert.equal(ollamaReference('owner/repo', 'Q8_0'), 'hf.co/owner/repo:Q8_0')
+    assert.equal(ollamaReference('owner/repo', 'q4_k_s'), 'hf.co/owner/repo:Q4_K_S')
+    assert.equal(ollamaReference('owner/repo', 'FP16'), 'hf.co/owner/repo:F16')
+    assert.equal(ollamaReference('owner/repo', 'FP32'), 'hf.co/owner/repo:F32')
+    assert.equal(ollamaReference('owner/repo', 'BF16'), 'hf.co/owner/repo:BF16')
+  })
+
+  it('falls back to the repository default when Ollama cannot use the label', () => {
+    // "Q8" is what a filename like model.q8.gguf yields, but Ollama only
+    // knows Q8_0 and matches tags against the published file names.
+    assert.equal(ollamaReference('owner/repo', 'Q8'), 'hf.co/owner/repo:latest')
+    assert.equal(ollamaReference('owner/repo', 'Q4'), 'hf.co/owner/repo:latest')
+    assert.equal(ollamaReference('owner/repo', 'not a tag!'), 'hf.co/owner/repo:latest')
+    assert.equal(ollamaReference('owner/repo', null), 'hf.co/owner/repo:latest')
   })
 
   it('normalizes hub URLs down to owner/repo', () => {
     assert.equal(normalizeRepoId('https://huggingface.co/owner/repo'), 'owner/repo')
     assert.equal(normalizeRepoId('  owner/repo/  '), 'owner/repo')
-    assert.equal(ollamaReference('https://hf.co/owner/repo'), 'hf.co/owner/repo')
+    assert.equal(ollamaReference('https://hf.co/owner/repo'), 'hf.co/owner/repo:latest')
   })
 
   it('derives a safe local model name', () => {
@@ -83,6 +122,20 @@ describe('ollama install plan', () => {
   it('honours an explicit quant override', () => {
     const plan = planOllamaInstall(model(), 'Q8_0')
     assert.equal(plan.reference, 'hf.co/bartowski/Llama-3.2-3B-Instruct-GGUF:Q8_0')
+  })
+
+  it('reports the tag Ollama will actually use', () => {
+    const plan = planOllamaInstall(model())
+    assert.equal(plan.quantTag, 'Q4_K_M')
+    assert.equal(plan.quantFallback, false)
+  })
+
+  it('flags a quant Ollama cannot tag and installs the repository default', () => {
+    const plan = planOllamaInstall(model({ quantLabel: 'Q8' }))
+    assert.equal(plan.quantTag, 'latest')
+    assert.equal(plan.quantFallback, true)
+    assert.equal(plan.reference, 'hf.co/bartowski/Llama-3.2-3B-Instruct-GGUF:latest')
+    assert.ok(plan.steps.every((step) => step.includes(':latest')))
   })
 })
 
@@ -157,6 +210,61 @@ describe('pullIntoOllama', () => {
     const result = await pullIntoOllama('hf.co/owner/repo', { spawnImpl })
     assert.equal(result.ok, false)
     assert.match(result.error ?? '', /exited with code 1/)
+  })
+
+  it('reports what Ollama said instead of only the exit code', async () => {
+    const spawnImpl = fakeOllamaSpawn([
+      {
+        output:
+          'pulling manifest\nError: pull model manifest: 400: {"error":"The specified tag is not a valid quantization scheme. Please use another tag or \\"latest\\""}\n',
+        code: 1
+      }
+    ])
+    const result = await pullIntoOllama('hf.co/owner/repo:Q8', { spawnImpl })
+    assert.equal(result.ok, false)
+    assert.match(result.error ?? '', /not a valid quantization scheme/)
+    assert.doesNotMatch(result.error ?? '', /^ollama exited with code/)
+  })
+
+  it('retries with the repository default when Ollama rejects the tag', async () => {
+    const seen: string[] = []
+    const spawnImpl = fakeOllamaSpawn(
+      [
+        {
+          output:
+            'pulling manifest\nError: pull model manifest: 400: {"error":"The specified tag is not available in the repository. Please use another tag or \\"latest\\""}\n',
+          code: 1
+        },
+        { output: 'pulling manifest\nsuccess\n', code: 0 }
+      ],
+      seen
+    )
+    const result = await pullIntoOllama('hf.co/owner/repo:Q8_0', { spawnImpl })
+    assert.equal(result.ok, true)
+    assert.equal(result.reference, 'hf.co/owner/repo:latest')
+    assert.deepEqual(seen, ['pull hf.co/owner/repo:Q8_0', 'pull hf.co/owner/repo:latest'])
+  })
+
+  it('keeps the original reference when the retry also fails', async () => {
+    const seen: string[] = []
+    const spawnImpl = fakeOllamaSpawn(
+      [
+        {
+          output: 'Error: pull model manifest: 400: {"error":"The specified tag is not available in the repository."}\n',
+          code: 1
+        },
+        {
+          output: 'Error: pull model manifest: 404: {"error":"model not found"}\n',
+          code: 1
+        }
+      ],
+      seen
+    )
+    const result = await pullIntoOllama('hf.co/owner/repo:Q8_0', { spawnImpl })
+    assert.equal(result.ok, false)
+    assert.equal(result.reference, 'hf.co/owner/repo:Q8_0')
+    assert.match(result.error ?? '', /model not found/)
+    assert.deepEqual(seen, ['pull hf.co/owner/repo:Q8_0', 'pull hf.co/owner/repo:latest'])
   })
 })
 

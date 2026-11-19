@@ -34,7 +34,9 @@ desktop app:
   the setup grade is weakest-link weighted and names the bottleneck.
   `gradeLetter` / `gradeLabel` map scores to A+…F and plain-language labels.
 - **Ollama install** (`planOllamaInstall`, `pullIntoOllama`, Modelfile helpers) —
-  a single `ollama pull hf.co/owner/repo:quant`, or a GPU-split Modelfile.
+  a single `ollama pull hf.co/owner/repo:quant`, or a GPU-split Modelfile. The
+  quantization is normalized to a scheme Ollama understands; a label it cannot
+  use falls back to the repository default (`:latest`) and says so.
 
 ## Gateway observer
 
@@ -118,7 +120,7 @@ branch, so a new registry entry only reaches the live Marketplace once
 
 ```bash
 npm run build          # refresh the committed dist/
-git tag v0.2.0
+git tag v0.2.1
 git push origin main --tags
 ```
 

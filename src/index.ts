@@ -83,6 +83,9 @@ export {
   machineLabel,
   matchInstalledModel,
   isCatalogFresh,
+  isQuantTagRejection,
+  latestReference,
+  normalizeOllamaQuantTag,
   normalizeRepoId,
   offloadHint,
   ollamaModelName,
@@ -98,8 +101,10 @@ export {
   scoreModels,
   searchCatalog,
   sortForDisplay,
+  summarizeOllamaFailure,
   writeCatalogCache,
   DEFAULT_CATALOG_TTL_MS,
+  OLLAMA_DEFAULT_TAG,
   OLLAMA_HF_HOST,
   PREFERRED_QUANTS
 } from './llamafarm/index.js'

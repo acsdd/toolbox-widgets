@@ -13,7 +13,77 @@ import type { CatalogModel } from './types.js'
 /** Ollama accepts both hosts; the short one is what its own docs use. */
 export const OLLAMA_HF_HOST = 'hf.co'
 const OLLAMA_HF_HOST_ALIASES = ['hf.co', 'huggingface.co']
-const TAG_PATTERN = /^[A-Za-z0-9_.-]{2,32}$/
+
+/**
+ * The quantization schemes Ollama accepts as an `hf.co` tag. Ollama matches a
+ * tag against the file names a repository publishes, so a label that is not
+ * one of these is rejected outright.
+ */
+const OLLAMA_QUANT_TAGS = new Set([
+  'F32',
+  'F16',
+  'BF16',
+  'Q4_0',
+  'Q4_1',
+  'Q5_0',
+  'Q5_1',
+  'Q8_0',
+  'Q2_K',
+  'Q3_K_S',
+  'Q3_K_M',
+  'Q3_K_L',
+  'Q4_K_S',
+  'Q4_K_M',
+  'Q5_K_S',
+  'Q5_K_M',
+  'Q6_K',
+  'IQ1_S',
+  'IQ1_M',
+  'IQ2_XXS',
+  'IQ2_XS',
+  'IQ2_S',
+  'IQ2_M',
+  'IQ3_XXS',
+  'IQ3_XS',
+  'IQ3_S',
+  'IQ3_M',
+  'IQ4_XS',
+  'IQ4_NL',
+  'TQ1_0',
+  'TQ2_0'
+])
+
+/** Labels that name an Ollama scheme under a different spelling. */
+const OLLAMA_QUANT_ALIASES: Record<string, string> = { FP16: 'F16', FP32: 'F32' }
+
+/** The tag Ollama serves when a repository publishes no matching quantization. */
+export const OLLAMA_DEFAULT_TAG = 'latest'
+
+/**
+ * Map a quantization label onto a tag Ollama understands, or null when it
+ * cannot use the label at all. A file called `model.q8.gguf` yields the label
+ * "Q8", which Ollama rejects — its scheme is `Q8_0` — so the caller falls
+ * back to the repository default.
+ */
+export function normalizeOllamaQuantTag(quantLabel?: string | null): string | null {
+  if (!quantLabel) return null
+  const key = quantLabel.trim().toUpperCase()
+  if (!key) return null
+  const alias = OLLAMA_QUANT_ALIASES[key]
+  if (alias) return alias
+  return OLLAMA_QUANT_TAGS.has(key) ? key : null
+}
+
+/** Replace the tag of an Ollama reference with the repository default. */
+export function latestReference(reference: string): string {
+  const index = reference.lastIndexOf(':')
+  return index === -1 ? `${reference}:${OLLAMA_DEFAULT_TAG}` : `${reference.slice(0, index)}:${OLLAMA_DEFAULT_TAG}`
+}
+
+/** True when Ollama refused a reference because of its quantization tag. */
+export function isQuantTagRejection(text: string): boolean {
+  return /not a valid quantization scheme|not available in the repository/i.test(text)
+}
 
 export interface OllamaInstallPlan {
   /** What `ollama pull` and `ollama run` accept, e.g. 'hf.co/owner/repo:Q4_K_M'. */
@@ -26,6 +96,10 @@ export interface OllamaInstallPlan {
   runArgs: string[]
   /** Ordered instructions for the user. */
   steps: string[]
+  /** The tag Ollama will use: the requested quantization, or the repository default. */
+  quantTag: string
+  /** True when the requested quantization could not be passed to Ollama as a tag. */
+  quantFallback: boolean
 }
 
 /** Strip a HuggingFace URL down to 'owner/repo'. */
@@ -37,11 +111,15 @@ export function normalizeRepoId(repoId: string): string {
     .replace(/\/+$/, '')
 }
 
-/** Build the Ollama reference for a HuggingFace repo, optionally with a quant tag. */
+/**
+ * Build the Ollama reference for a HuggingFace repo. The tag is the
+ * quantization Ollama can serve; a label it cannot use falls back to the
+ * repository default, which Ollama always resolves.
+ */
 export function ollamaReference(repoId: string, quantLabel?: string | null): string {
   const id = normalizeRepoId(repoId)
-  const tag = quantLabel && TAG_PATTERN.test(quantLabel.trim()) ? quantLabel.trim() : ''
-  return tag ? `${OLLAMA_HF_HOST}/${id}:${tag}` : `${OLLAMA_HF_HOST}/${id}`
+  const tag = normalizeOllamaQuantTag(quantLabel) ?? OLLAMA_DEFAULT_TAG
+  return `${OLLAMA_HF_HOST}/${id}:${tag}`
 }
 
 /** A safe local Ollama model name derived from the catalog label. */
@@ -61,7 +139,11 @@ export function planOllamaInstall(model: CatalogModel, quantLabel?: string | nul
   if (!model.formats.includes('gguf')) {
     throw new Error(`"${model.label}" is not published as GGUF, so Ollama cannot import it directly.`)
   }
-  const reference = ollamaReference(model.id, quantLabel ?? model.quantLabel)
+  const requested = quantLabel ?? model.quantLabel
+  const tag = normalizeOllamaQuantTag(requested)
+  const quantFallback = Boolean(requested) && tag === null
+  const quantTag = tag ?? OLLAMA_DEFAULT_TAG
+  const reference = ollamaReference(model.id, quantTag)
   const modelName = ollamaModelName(model.label)
   return {
     reference,
@@ -71,7 +153,9 @@ export function planOllamaInstall(model: CatalogModel, quantLabel?: string | nul
     steps: [
       `ollama pull ${reference}`,
       `ollama run ${reference}`
-    ]
+    ],
+    quantTag,
+    quantFallback
   }
 }
 
@@ -146,6 +230,35 @@ export interface PullResult {
   /** Everything the runtime printed (progress bars live on stderr). */
   output: string
   error: string | null
+  /** The reference that was attempted, when the caller pulled one. */
+  reference?: string
+}
+
+const ANSI_PATTERN = /\u001b\[[0-9;?]*[A-Za-z]/g
+
+/**
+ * Turn what Ollama printed into a message the user can act on. The runtime
+ * explains itself in its last line — "the specified tag is not a valid
+ * quantization scheme" — and that text is worth more than an exit code.
+ */
+export function summarizeOllamaFailure(output: string, code: number | null): string {
+  const lines = output
+    .replace(ANSI_PATTERN, '')
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean)
+  const errorLine = [...lines].reverse().find((line) => /^error\b/i.test(line))
+  if (errorLine) return errorLine
+  const meaningful = [...lines]
+    .reverse()
+    .find(
+      (line) =>
+        !/^(pulling|writing|verifying|removing|success|creating|loading|model)\b/i.test(line) &&
+        !/^\d+%$/.test(line) &&
+        !/^sha256:/i.test(line)
+    )
+  if (meaningful) return meaningful
+  return `ollama exited with code ${code}`
 }
 
 /** Run an `ollama` subcommand, streaming its output. */
@@ -178,15 +291,28 @@ export function runOllamaCommand(
     child.stderr?.on('data', collect)
     child.on('error', (error) => finish({ ok: false, code: null, output, error: error.message }))
     child.on('close', (code) =>
-      finish({ ok: code === 0, code, output, error: code === 0 ? null : `ollama exited with code ${code}` })
+      finish({ ok: code === 0, code, output, error: code === 0 ? null : summarizeOllamaFailure(output, code) })
     )
   })
 }
 
-/** Pull a reference into the local Ollama runtime, streaming progress. */
-export function pullIntoOllama(
+/**
+ * Pull a reference into the local Ollama runtime, streaming progress.
+ *
+ * Ollama matches a quantization tag against the file names a repository
+ * publishes, so a tag can be valid yet unavailable. When Ollama rejects the
+ * tag, the pull is retried once with the repository default, which Ollama
+ * always resolves.
+ */
+export async function pullIntoOllama(
   reference: string,
   options: { spawnImpl?: SpawnLike; onOutput?: (chunk: string) => void } = {}
 ): Promise<PullResult> {
-  return runOllamaCommand(['pull', reference], options)
+  const first = await runOllamaCommand(['pull', reference], options)
+  if (first.ok || !isQuantTagRejection(first.output)) return { ...first, reference }
+  const fallback = latestReference(reference)
+  if (fallback === reference) return { ...first, reference }
+  const second = await runOllamaCommand(['pull', fallback], options)
+  if (second.ok) return { ...second, reference: fallback }
+  return { ...second, reference }
 }

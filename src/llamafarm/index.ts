@@ -30,7 +30,10 @@ export {
 } from './grade.js'
 export {
   buildModelfile,
+  isQuantTagRejection,
+  latestReference,
   matchInstalledModel,
+  normalizeOllamaQuantTag,
   normalizeRepoId,
   ollamaModelName,
   ollamaReference,
@@ -38,6 +41,8 @@ export {
   probeOllamaCli,
   pullIntoOllama,
   runOllamaCommand,
+  summarizeOllamaFailure,
+  OLLAMA_DEFAULT_TAG,
   OLLAMA_HF_HOST,
   type OllamaCliInfo,
   type OllamaInstallPlan,
