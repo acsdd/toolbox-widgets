@@ -39,10 +39,14 @@ export function parseParamsBillions(fileName: string): number | null {
   return match ? Number(match[1]) : null
 }
 
-/** Parse a quantization label from a weights filename ('Q4_K_M', 'Q8_0', 'F16'). */
+/** Parse a quantization label from a weights filename ('Q4_K_M', 'Q8_0', 'F16', 'IQ4_XS', 'q4k'). */
 export function parseQuantLabel(fileName: string): string | null {
-  const match = /\b(Q[2-8](?:_K_[A-Z0-9]+)?|Q8_0|BF16|FP16|F16|FP32|F32)\b/i.exec(fileName)
-  return match ? match[1].toUpperCase() : null
+  // Community repos also publish short k-quant names ('q4k') and i-quants
+  // ('IQ4_XS'); both were invisible to the catalog before.
+  const match = /\b(IQ[1-4](?:_[A-Z0-9]{2,4})?|Q[2-8](?:_K(?:_[A-Z0-9]+)?|K|_\d)?|BF16|FP16|F16|FP32|F32)\b/i.exec(fileName)
+  if (!match) return null
+  // Normalize the short form so 'q4k' and 'Q4_K' name the same quant.
+  return match[1].toUpperCase().replace(/^(Q[2-8])K$/, '$1_K')
 }
 
 function quantBits(quantLabel: string | null): number {

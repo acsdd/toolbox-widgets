@@ -69,6 +69,13 @@ describe('parseQuantLabel', () => {
     assert.equal(parseQuantLabel('model-F16.gguf'), 'F16')
   })
 
+  it('parses short and i-quant names from older community repos', () => {
+    assert.equal(parseQuantLabel('model.q4k.gguf'), 'Q4_K')
+    assert.equal(parseQuantLabel('model.q5k.gguf'), 'Q5_K')
+    assert.equal(parseQuantLabel('llama-3-8b.IQ4_XS.gguf'), 'IQ4_XS')
+    assert.equal(parseQuantLabel('mistral-7b.IQ2_XXS.gguf'), 'IQ2_XXS')
+  })
+
   it('returns null without a quant label', () => {
     assert.equal(parseQuantLabel('model.safetensors'), null)
     assert.equal(parseQuantLabel('model.gguf'), null)

@@ -15,7 +15,7 @@ export interface FetchCatalogOptions {
 }
 /** Parse a parameter count from a weights filename ('...-7B-...' -> 7, '1.5B' -> 1.5). */
 export declare function parseParamsBillions(fileName: string): number | null;
-/** Parse a quantization label from a weights filename ('Q4_K_M', 'Q8_0', 'F16'). */
+/** Parse a quantization label from a weights filename ('Q4_K_M', 'Q8_0', 'F16', 'IQ4_XS', 'q4k'). */
 export declare function parseQuantLabel(fileName: string): string | null;
 interface HfSibling {
     rfilename: string;
