@@ -227,7 +227,7 @@ export function runOllamaCommand(args, options = {}) {
         }
         const collect = (chunk) => {
             const text = typeof chunk === 'string' ? chunk : chunk.toString('utf8');
-            output += text;
+            output = (output + text).slice(-262_144);
             options.onOutput?.(text);
         };
         child.stdout?.on('data', collect);

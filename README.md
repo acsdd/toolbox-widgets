@@ -127,3 +127,7 @@ git push origin main --tags
 ## License
 
 MIT — see [LICENSE](LICENSE).
+
+### Remote marketplace endpoints
+
+`validateRemoteEndpoint` is asynchronous as of 0.3.0: await it to check both URL syntax and all DNS answers. Registry parsing only checks syntax; remote consumers must also enforce the public-address policy at socket connection time to prevent DNS rebinding.

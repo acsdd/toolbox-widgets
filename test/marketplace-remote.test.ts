@@ -3,19 +3,20 @@ import { describe, it } from 'node:test'
 import { parseRegistry, validateRemoteEndpoint } from '../dist/index.js'
 
 describe('validateRemoteEndpoint', () => {
-  it('accepts public HTTPS endpoints', () => {
-    assert.equal(validateRemoteEndpoint('https://liquidvision.app/mcp'), 'https://liquidvision.app/mcp')
-    assert.equal(validateRemoteEndpoint('https://mcp.cve.now/mcp'), 'https://mcp.cve.now/mcp')
+  it('accepts public HTTPS endpoints', async () => {
+    const resolver = async () => [{address:'8.8.8.8',family:4}]
+    assert.equal(await validateRemoteEndpoint('https://liquidvision.app/mcp', resolver), 'https://liquidvision.app/mcp')
+    assert.equal(await validateRemoteEndpoint('https://mcp.cve.now/mcp', resolver), 'https://mcp.cve.now/mcp')
   })
 
-  it('rejects non-HTTPS, credentials and malformed URLs', () => {
-    assert.throws(() => validateRemoteEndpoint('http://example.com/mcp'), /HTTPS/)
-    assert.throws(() => validateRemoteEndpoint('https://user:pass@example.com/mcp'), /credentials/)
-    assert.throws(() => validateRemoteEndpoint('not a url'), /not a valid URL/)
-    assert.throws(() => validateRemoteEndpoint(''), /endpoint URL/)
+  it('rejects non-HTTPS, credentials and malformed URLs', async () => {
+    await assert.rejects(validateRemoteEndpoint('http://example.com/mcp'), /HTTPS/)
+    await assert.rejects(validateRemoteEndpoint('https://user:pass@example.com/mcp'), /credentials/)
+    await assert.rejects(validateRemoteEndpoint('not a url'), /not a valid URL/)
+    await assert.rejects(validateRemoteEndpoint(''), /endpoint URL/)
   })
 
-  it('rejects loopback, private and intranet hosts', () => {
+  it('rejects loopback, private and intranet hosts', async () => {
     for (const host of [
       'https://localhost/mcp',
       'https://127.0.0.1/mcp',
@@ -28,7 +29,7 @@ describe('validateRemoteEndpoint', () => {
       'https://server.internal/mcp',
       'https://intranet/mcp'
     ]) {
-      assert.throws(() => validateRemoteEndpoint(host), /public hosts|private or loopback/)
+      await assert.rejects(validateRemoteEndpoint(host), /public hosts|private or loopback/)
     }
   })
 })
@@ -67,4 +68,13 @@ describe('remote-server registry modules', () => {
       /private or loopback/
     )
   })
+})
+
+
+it('rejects DNS names with private or mixed answers', async () => {
+  const { assertRemoteEndpointAllowed } = await import('../dist/index.js')
+  const publicResolver = async () => [{address:'8.8.8.8',family:4}]
+  const mixedResolver = async () => [{address:'8.8.8.8',family:4},{address:'127.0.0.1',family:4}]
+  assert.equal(await assertRemoteEndpointAllowed('https://example.com/mcp',publicResolver),'https://example.com/mcp')
+  await assert.rejects(assertRemoteEndpointAllowed('https://example.com/mcp',mixedResolver),/private or reserved/)
 })

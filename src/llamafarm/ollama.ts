@@ -284,7 +284,7 @@ export function runOllamaCommand(
     }
     const collect = (chunk: Buffer | string): void => {
       const text = typeof chunk === 'string' ? chunk : chunk.toString('utf8')
-      output += text
+      output = (output + text).slice(-262_144)
       options.onOutput?.(text)
     }
     child.stdout?.on('data', collect)

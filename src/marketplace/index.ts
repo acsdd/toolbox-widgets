@@ -10,4 +10,4 @@ export type {
   MarketplaceRegistry
 } from './types.js'
 export { fetchRegistry, parseRegistry, searchModules, type FetchRegistryOptions } from './registry.js'
-export { validateRemoteEndpoint } from './remote.js'
+export { validateRemoteEndpoint, assertRemoteEndpointAllowed, isPublicEndpointAddress, type EndpointResolver } from './remote.js'

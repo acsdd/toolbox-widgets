@@ -1,6 +1,6 @@
 {
   "name": "@toolbox/widgets",
-  "version": "0.2.2",
+  "version": "0.3.0",
   "description": "Shared widget core and portable bundle format for the Toolbox family of apps (desktop, NAS, MCP).",
   "author": "Alpha Team",
   "license": "MIT",

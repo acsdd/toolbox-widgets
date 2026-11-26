@@ -150,7 +150,9 @@ export {
   fetchRegistry,
   parseRegistry,
   searchModules,
-  validateRemoteEndpoint
+  validateRemoteEndpoint,
+  assertRemoteEndpointAllowed,
+  isPublicEndpointAddress
 } from './marketplace/index.js'
 export type {
   FetchRegistryOptions,

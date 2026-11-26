@@ -10,7 +10,7 @@ export interface FetchRegistryOptions {
     registryUrl?: string;
     timeoutMs?: number;
 }
-/** Validate a registry document. Throws with a friendly message when invalid. */
+/** Parse registry syntax; validate DNS and pin it when connecting to any remote endpoint. */
 export declare function parseRegistry(value: unknown): MarketplaceRegistry;
 /** Fetch and validate the live registry. */
 export declare function fetchRegistry(options?: FetchRegistryOptions): Promise<MarketplaceRegistry>;

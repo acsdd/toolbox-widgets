@@ -4,7 +4,7 @@
  * validator); this module never executes anything from the registry.
  */
 import type { FetchLike } from '../widgets/crypto-watch.js'
-import { validateRemoteEndpoint } from './remote.js'
+import { parseRemoteEndpoint } from './remote.js'
 import {
   DEFAULT_REGISTRY_URL,
   MARKETPLACE_FORMAT,
@@ -31,7 +31,7 @@ function parseModule(value: unknown): MarketplaceModule {
   if (entry.type !== 'widget' && entry.type !== 'feature' && entry.type !== 'remote-server') {
     throw new Error(`Registry module "${String(entry.id)}" has an unknown type.`)
   }
-  const endpoint = entry.type === 'remote-server' ? validateRemoteEndpoint(entry.endpoint) : undefined
+  const endpoint = entry.type === 'remote-server' ? parseRemoteEndpoint(entry.endpoint) : undefined
   return {
     id: entry.id as string,
     type: entry.type,
@@ -50,7 +50,7 @@ function parseModule(value: unknown): MarketplaceModule {
   }
 }
 
-/** Validate a registry document. Throws with a friendly message when invalid. */
+/** Parse registry syntax; validate DNS and pin it when connecting to any remote endpoint. */
 export function parseRegistry(value: unknown): MarketplaceRegistry {
   if (!value || typeof value !== 'object') throw new Error('The registry is not an object.')
   const registry = value as { format?: unknown; formatVersion?: unknown; updated?: unknown; modules?: unknown }

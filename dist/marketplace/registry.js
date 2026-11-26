@@ -1,4 +1,4 @@
-import { validateRemoteEndpoint } from './remote.js';
+import { parseRemoteEndpoint } from './remote.js';
 import { DEFAULT_REGISTRY_URL, MARKETPLACE_FORMAT, MARKETPLACE_FORMAT_VERSION } from './types.js';
 function parseModule(value) {
     if (!value || typeof value !== 'object')
@@ -12,7 +12,7 @@ function parseModule(value) {
     if (entry.type !== 'widget' && entry.type !== 'feature' && entry.type !== 'remote-server') {
         throw new Error(`Registry module "${String(entry.id)}" has an unknown type.`);
     }
-    const endpoint = entry.type === 'remote-server' ? validateRemoteEndpoint(entry.endpoint) : undefined;
+    const endpoint = entry.type === 'remote-server' ? parseRemoteEndpoint(entry.endpoint) : undefined;
     return {
         id: entry.id,
         type: entry.type,
@@ -30,7 +30,7 @@ function parseModule(value) {
         ...(entry.builtIn === true ? { builtIn: true } : {})
     };
 }
-/** Validate a registry document. Throws with a friendly message when invalid. */
+/** Parse registry syntax; validate DNS and pin it when connecting to any remote endpoint. */
 export function parseRegistry(value) {
     if (!value || typeof value !== 'object')
         throw new Error('The registry is not an object.');

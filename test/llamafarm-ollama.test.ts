@@ -333,3 +333,13 @@ describe('catalog cache', () => {
     assert.match(catalogCachePath('/tmp/home'), /home.*catalog-cache\.json$/)
   })
 })
+
+
+it('retains a bounded diagnostic tail for noisy Ollama output', async () => {
+  const output = 'x'.repeat(400_000) + '\nError: final diagnostic\n'
+  let streamed = 0
+  const result = await pullIntoOllama('hf.co/owner/repo', { spawnImpl: fakeOllamaSpawn([{output, code:1}]), onOutput: chunk => { streamed += chunk.length } })
+  assert.ok(result.output.length <= 262_144)
+  assert.match(result.output, /final diagnostic/)
+  assert.equal(streamed, output.length)
+})

@@ -1,7 +1,11 @@
-/**
- * Endpoint guard for remote-server marketplace modules. Remote endpoints
- * receive tool arguments from this machine, so they must be public HTTPS
- * hosts — never loopback, link-local, private ranges or bare intranet names.
- */
-/** Throws unless the endpoint is a public HTTPS URL. Returns the normalized URL. */
-export declare function validateRemoteEndpoint(value: unknown): string;
+/** Syntactic preflight only; call assertRemoteEndpointAllowed before connecting. */
+export declare function parseRemoteEndpoint(value: unknown): string;
+export declare function isPublicEndpointAddress(address: string): boolean;
+export type EndpointResolver = (host: string) => Promise<Array<{
+    address: string;
+    family: number;
+}>>;
+/** Resolve and reject private or reserved answers. Repeat validation at socket connection time. */
+export declare function assertRemoteEndpointAllowed(value: unknown, resolver?: EndpointResolver): Promise<string>;
+/** Validate syntax and DNS answers; callers must also enforce policy at connection time. */
+export declare const validateRemoteEndpoint: typeof assertRemoteEndpointAllowed;
