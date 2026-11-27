@@ -28,4 +28,15 @@ describe('WIDGET_HOST_CSS portable pattern', () => {
     assert.ok(WIDGET_HOST_CSS.includes('--wh-player-width'))
     assert.ok(WIDGET_HOST_CSS.includes('var(--border-soft,'))
   })
+
+  it('aligns with the family foundation (type, neutrals, radii, motion, focus)', () => {
+    assert.match(WIDGET_HOST_CSS, /font-family:\s*var\(--family-font/)
+    assert.match(WIDGET_HOST_CSS, /--wh-bg:\s*var\(--bg,\s*#101219\)/)
+    assert.match(WIDGET_HOST_CSS, /--wh-text:\s*var\(--text,\s*#f2f3fa\)/)
+    assert.ok(WIDGET_HOST_CSS.includes('var(--family-radius-control'))
+    assert.ok(WIDGET_HOST_CSS.includes('var(--family-duration'))
+    assert.ok(WIDGET_HOST_CSS.includes('var(--family-glass-sheen'))
+    assert.match(WIDGET_HOST_CSS, /\.rail-tool:focus-visible\s*{[^}]*outline:\s*2px solid/)
+    assert.match(WIDGET_HOST_CSS, /@media \(prefers-reduced-motion: reduce\)/)
+  })
 })

@@ -26,6 +26,12 @@
  * use `.app-body.mode-host` with `.content > .host-screen` and `.tool-rail`,
  * or apply `.host-screen` to an existing grid/flex stage.
  *
+ * Visual tokens align with the Toolbox family foundation
+ * (brand-assets/family-ui): family type stack, night neutrals as fallbacks,
+ * control radius, 160ms motion, glass rail and the shared 2px focus ring.
+ * Hosts override `--bg/--panel/--border-soft/--muted/--text/--panel-raised`
+ * and the accent; the family tokens are optional.
+ *
  * Invariant: the FULL player and the MINI player are mutually exclusive —
  * exactly one is visible at any time. Enforce this in app state, not CSS.
  */
@@ -33,17 +39,18 @@ export const WIDGET_HOST_CSS = `
 .app-body {
   --wh-rail-width: 64px;
   --wh-player-width: 340px;
-  --wh-bg: #121923;
-  --wh-bg-raised: #1c2431;
-  --wh-border: var(--border-soft, rgba(255, 255, 255, 0.08));
-  --wh-muted: var(--muted, #93a9c8);
-  --wh-text: var(--text, #e8eef7);
-  --wh-panel-raised: var(--panel-raised, #232c3b);
+  --wh-bg: var(--bg, #101219);
+  --wh-bg-raised: var(--panel, #191c26);
+  --wh-border: var(--border-soft, #2a2f3e);
+  --wh-muted: var(--muted, #b0b6ca);
+  --wh-text: var(--text, #f2f3fa);
+  --wh-panel-raised: var(--panel-raised, #232735);
 
   display: flex;
   flex: 1 1 auto;
   align-items: stretch;
   min-height: 0;
+  font-family: var(--family-font, 'Segoe UI Variable Text', 'Segoe UI', system-ui, sans-serif);
 }
 
 .app-body > .content {
@@ -66,7 +73,10 @@ export const WIDGET_HOST_CSS = `
   width: var(--wh-rail-width);
   padding: 10px 0;
   border-left: 1px solid var(--wh-border);
-  background: linear-gradient(180deg, var(--wh-bg-raised), var(--wh-bg));
+  background:
+    var(--family-glass-sheen, linear-gradient(155deg, #ffffff0d, transparent 56%)),
+    linear-gradient(180deg, var(--wh-bg-raised), var(--wh-bg));
+  box-shadow: var(--family-glass-edge, inset 0 1px 0 #ffffff14);
   overflow: hidden;
 }
 
@@ -74,7 +84,7 @@ export const WIDGET_HOST_CSS = `
   display: grid;
   flex: 0 0 auto;
   place-items: center;
-  border-radius: 9px;
+  border-radius: var(--family-radius-control, 10px);
 }
 
 .rail-tools {
@@ -99,9 +109,17 @@ export const WIDGET_HOST_CSS = `
   width: 38px;
   height: 38px;
   border: 1px solid transparent;
-  border-radius: 10px;
+  border-radius: var(--family-radius-control, 10px);
   color: var(--accent, #5b8cff);
-  transition: background 0.14s ease, border-color 0.14s ease, color 0.14s ease;
+  transition:
+    background var(--family-duration, 160ms) var(--family-ease, ease),
+    border-color var(--family-duration, 160ms) var(--family-ease, ease),
+    color var(--family-duration, 160ms) var(--family-ease, ease);
+}
+
+.rail-tool:focus-visible {
+  outline: 2px solid var(--family-focus, var(--accent, #5b8cff));
+  outline-offset: 3px;
 }
 
 .rail-tool:hover {
@@ -178,6 +196,24 @@ export const WIDGET_HOST_CSS = `
   order: -1;
   flex: 1 1 auto;
   min-width: 0;
+}
+
+/* ---------- Family accessibility defaults ---------- */
+
+@media (prefers-reduced-motion: reduce) {
+  .rail-tool {
+    transition: none;
+  }
+}
+
+@media (forced-colors: active) {
+  .rail-tool:focus-visible,
+  .rail-tool.active {
+    outline: 2px solid Highlight;
+  }
+  .rail-tool.active {
+    outline-offset: -3px;
+  }
 }
 `;
 //# sourceMappingURL=widget-host.js.map
